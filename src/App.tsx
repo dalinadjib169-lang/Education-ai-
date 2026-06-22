@@ -276,9 +276,9 @@ export default function App() {
             className="bg-gradient-to-b from-brand-card to-brand-darker border border-brand-cyan/20 p-12 md:p-20 rounded-[3rem] relative overflow-hidden glow-box"
           >
             {/* Urgency Badge */}
-            <div className="absolute top-0 right-1/2 translate-x-1/2 bg-red-500/10 border border-red-500/30 text-red-500 px-6 py-2 rounded-b-2xl font-bold flex items-center gap-2">
-              <Clock className="w-5 h-5 animate-pulse" />
-              <span>التسجيل مفتوح لفترة قصيرة</span>
+            <div className="absolute top-0 right-1/2 translate-x-1/2 w-[90%] sm:w-auto bg-red-500/10 border border-red-500/30 text-red-500 px-4 sm:px-6 py-2 rounded-b-2xl font-bold flex items-center justify-center gap-2">
+              <Clock className="w-5 h-5 animate-pulse shrink-0" />
+              <span className="text-sm sm:text-base">التسجيل مفتوح لفترة قصيرة</span>
             </div>
 
             <div className="space-y-8 mt-6">
@@ -288,8 +288,12 @@ export default function App() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-                <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
-                  <MessageCircle className="w-6 h-6" />
+                {/* 
+                  ملاحظة مهمة: يجب وضع رقم الهاتف الخاص بك بعد wa.me/ 
+                  مثال: https://wa.me/213555555555
+                */}
+                <a href="https://wa.me/213000000000?text=مرحباً،%20أريد%20التسجيل%20في%20دورة%20الذكاء%20الاصطناعي" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
+                  <MessageCircle className="w-6 h-6 shrink-0" />
                   سجل عبر واتساب
                 </a>
                 <a href="#" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white hover:bg-gray-200 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl transition-all transform hover:scale-105">
