@@ -292,7 +292,7 @@ export default function App() {
                   ملاحظة مهمة: يجب وضع رقم الهاتف الخاص بك بعد wa.me/ 
                   مثال: https://wa.me/213555555555
                 */}
-                <a href="https://wa.me/213000000000?text=مرحباً،%20أريد%20التسجيل%20في%20دورة%20الذكاء%20الاصطناعي" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
+                <a href="https://wa.me/213673831994?text=مرحباً،%20أريد%20التسجيل%20في%20دورة%20الذكاء%20الاصطناعي" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
                   <MessageCircle className="w-6 h-6 shrink-0" />
                   سجل عبر واتساب
                 </a>
@@ -319,7 +319,7 @@ export default function App() {
           
           <div className="flex items-center gap-6 text-gray-400">
             <a href="#register" className="hover:text-brand-cyan transition-colors">التسجيل</a>
-            <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">تواصل معنا واتساب</a>
+            <a href="https://wa.me/213673831994" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">تواصل معنا واتساب</a>
           </div>
           
           <div className="text-sm text-gray-600">
