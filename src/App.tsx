@@ -409,15 +409,6 @@ export default function App() {
                 المقاعد محدودة جداً لضمان جودة المتابعة والتطبيق العملي.
               </p>
 
-              <div className="flex justify-center pt-2 pb-4">
-                <div className="bg-brand-dark/50 border border-brand-cyan/20 rounded-2xl p-6 text-right w-full max-w-sm shadow-lg space-y-3 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-2 h-full bg-brand-cyan"></div>
-                  <p className="text-lg md:text-xl text-white pr-2"><span className="text-brand-cyan font-bold inline-block w-28">مكان الدورة:</span> سوق أهراس</p>
-                  <p className="text-lg md:text-xl text-white pr-2"><span className="text-brand-cyan font-bold inline-block w-28">سعر الدورة:</span> 10,000 د.ج (مليون)</p>
-                  <p className="text-lg md:text-xl text-white pr-2"><span className="text-brand-cyan font-bold inline-block w-28">نمط التعلم:</span> تطبيقي 100%</p>
-                </div>
-              </div>
-
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <a href="https://wa.me/213673831994?text=مرحباً%20أستاذ%20دالي،%20أنا%20مهتم%20بالتسجيل%20في%20دورة%20الذكاء%20الاصطناعي." target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
                   <MessageCircle className="w-6 h-6 shrink-0" />
