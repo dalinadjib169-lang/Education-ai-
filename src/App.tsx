@@ -39,6 +39,9 @@ export default function App() {
   const [heroVideo, setHeroVideo] = React.useState<string>(() => localStorage.getItem('heroVideo') || '');
   const [isUploadingVid, setIsUploadingVid] = React.useState(false);
   const [isUploadingImg, setIsUploadingImg] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState<number>(0);
+  
+  const isAdmin = typeof window !== 'undefined' && window.location.search.includes('admin=true');
 
   const handleUpload = async (file: File, type: 'image' | 'video') => {
     let preset = localStorage.getItem('cloudinary_preset');
@@ -63,18 +66,25 @@ export default function App() {
     localStorage.setItem('cloudinary_preset', preset);
     if(type === 'image') setIsUploadingImg(true);
     if(type === 'video') setIsUploadingVid(true);
+    setUploadProgress(0);
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', preset);
 
-    try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/doaxziqm7/${type}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/doaxziqm7/${type}/upload`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percentComplete = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(percentComplete);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const data = JSON.parse(xhr.responseText);
         if(type === 'image') {
           setProfileImage(data.secure_url);
           localStorage.setItem('profileImage', data.secure_url);
@@ -82,21 +92,29 @@ export default function App() {
           setHeroVideo(data.secure_url);
           localStorage.setItem('heroVideo', data.secure_url);
         }
+        alert(`تم رفع الملف بنجاح على Cloudinary!\n\nملاحظة هامة جداً: الرفع في هذه الصفحة يحفظ الرابط في متصفحك أنت فقط (لكي تراه أنت). لكي يرى الزوار هذه التعديلات، انسخ هذا الرابط وأعطه للذكاء الاصطناعي لكي يقوم بتثبيته نهائياً في الكود:\n\n${data.secure_url}`);
       } else {
-        alert("حدث خطأ في Cloudinary: " + (data.error?.message || "تأكد من أن الـ Preset صحيح ومفعل كـ Unsigned"));
+        alert("حدث خطأ في Cloudinary. تحقق من الـ Preset");
         const url = URL.createObjectURL(file);
         if(type === 'image') setProfileImage(url);
         if(type === 'video') setHeroVideo(url);
       }
-    } catch (err) {
+      if(type === 'image') setIsUploadingImg(false);
+      if(type === 'video') setIsUploadingVid(false);
+      setUploadProgress(0);
+    };
+
+    xhr.onerror = () => {
       alert("فشل الاتصال بـ Cloudinary");
       const url = URL.createObjectURL(file);
       if(type === 'image') setProfileImage(url);
       if(type === 'video') setHeroVideo(url);
-    } finally {
       if(type === 'image') setIsUploadingImg(false);
       if(type === 'video') setIsUploadingVid(false);
-    }
+      setUploadProgress(0);
+    };
+
+    xhr.send(formData);
   };
 
   return (
@@ -157,20 +175,24 @@ export default function App() {
             {heroVideo ? (
               <div className="relative w-full h-full">
                 <video src={heroVideo} controls className="w-full h-full object-cover" />
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <label className="bg-brand-darker/80 backdrop-blur-md text-white px-4 py-2 rounded-full cursor-pointer hover:bg-brand-cyan hover:text-brand-darker transition-colors text-sm shadow-lg font-bold">
-                    {isUploadingVid ? "جاري الرفع..." : "تغيير الفيديو"}
-                    <input type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'video')} disabled={isUploadingVid} />
-                  </label>
-                </div>
+                {isAdmin && (
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <label className="bg-brand-darker/80 backdrop-blur-md text-white px-4 py-2 rounded-full cursor-pointer hover:bg-brand-cyan hover:text-brand-darker transition-colors text-sm shadow-lg font-bold">
+                      {isUploadingVid ? `جاري الرفع... ${uploadProgress}%` : "تغيير الفيديو"}
+                      <input type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'video')} disabled={isUploadingVid} />
+                    </label>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-brand-card to-brand-darker flex flex-col items-center justify-center">
                 {isUploadingVid ? (
-                  <div className="bg-brand-cyan/20 p-8 rounded-full border border-brand-cyan shadow-[0_0_30px_rgba(0,229,255,0.3)] animate-pulse flex items-center justify-center flex-col">
-                     <span className="text-brand-cyan font-bold text-xl inline-block mt-4">جاري رفع الفيديو...</span>
+                  <div className="bg-brand-cyan/20 p-8 rounded-full border border-brand-cyan shadow-[0_0_30px_rgba(0,229,255,0.3)] flex items-center justify-center flex-col relative overflow-hidden">
+                     <div className="absolute bottom-0 left-0 h-full bg-brand-cyan/20 transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                     <span className="text-brand-cyan font-bold text-xl inline-block mt-2 relative z-10">{uploadProgress}%</span>
+                     <span className="text-brand-cyan font-bold text-sm inline-block mt-1 relative z-10">جاري رفع الفيديو...</span>
                   </div>
-                ) : (
+                ) : isAdmin ? (
                   <>
                     <label className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-brand-cyan/20 flex items-center justify-center mb-6 cursor-pointer hover:scale-110 hover:bg-brand-cyan/30 transition-all duration-300">
                       <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-brand-cyan flex items-center justify-center pl-1.5 md:pl-2 shadow-[0_0_30px_rgba(0,229,255,0.5)]">
@@ -180,6 +202,15 @@ export default function App() {
                     </label>
                     <h3 className="text-white font-bold text-lg md:text-xl">اضغط هنا لرفع فيديو تعريفي</h3>
                     <p className="text-brand-cyan text-sm md:text-base mt-2">عن طريق Cloudinary الخاص بك (doaxziqm7)</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-brand-cyan/10 flex items-center justify-center mb-6">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-brand-cyan/50 flex items-center justify-center pl-1.5 md:pl-2">
+                        <Play className="w-6 h-6 md:w-8 md:h-8 text-brand-darker/50 fill-current" />
+                      </div>
+                    </div>
+                    <h3 className="text-white/50 font-bold text-lg md:text-xl">فيديو الدورة قريباً</h3>
                   </>
                 )}
               </div>
@@ -252,9 +283,9 @@ export default function App() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: BrainCircuit, title: "فهم أساسيات الذكاء الاصطناعي", desc: "بدون مصطلحات أكاديمية معقدة، شرح مبسط لآلية عمل الأدوات." },
-              { icon: Code2, title: "التفكير البرمجي للمبتدئين", desc: "كيف تفكر كالمهندسين وتوجه الذكاء الاصطناعي لتنفيذ أفكارك." },
-              { icon: Bot, title: "تطبيقات عملية بسيطة", desc: "نطبق معاً خطوة بخطوة لبناء أدوات حقيقية يمكنك استخدامها يومياً." },
+              { icon: BrainCircuit, title: "الاستعمال الصحيح للذكاء الاصطناعي", desc: "بدون مصطلحات أكاديمية معقدة، تعلم الاستعمال الصحيح والمحترف لأدوات الذكاء الاصطناعي." },
+              { icon: Bot, title: "إنشاء تطبيقات بالذكاء الاصطناعي", desc: "تعلم كيفية تسخير الذكاء الاصطناعي لبناء تطبيقات حقيقية يمكنك استخدامها يومياً وحل مشاريعك." },
+              { icon: Code2, title: "إنشاء تطبيقات وألعاب", desc: "تعلم إنشاء تطبيقات وألعاب بسيطة تعليمية دون أي معرفة مسبقة بلغات البرمجة." },
               { icon: Rocket, title: "كيف تبدأ مشاريع صغيرة", desc: "حول فهمك إلى مشاريع صغيرة قابلة للنمو وربما مشاريع ربحية." }
             ].map((item, i) => (
               <motion.div 
@@ -311,12 +342,13 @@ export default function App() {
                   </div>
                 </div>
 
-                <label className="absolute inset-0 z-20 flex items-center justify-center bg-brand-darker/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
-                    <div className="bg-brand-cyan text-brand-darker px-8 py-4 rounded-full font-bold shadow-[0_0_20px_rgba(0,229,255,0.4)] hover:scale-105 transition-transform flex flex-col items-center gap-2">
-                      <span className="text-lg">{isUploadingImg ? "جاري الرفع..." : "ارفع صورتك"}</span>
+                <label className={`absolute inset-0 z-20 flex items-center justify-center bg-brand-darker/60 transition-opacity backdrop-blur-sm ${isAdmin ? 'opacity-0 hover:opacity-100 cursor-pointer' : 'hidden'}`}>
+                    <div className="bg-brand-cyan text-brand-darker px-8 py-4 rounded-full font-bold shadow-[0_0_20px_rgba(0,229,255,0.4)] hover:scale-105 transition-transform flex flex-col items-center gap-2 relative overflow-hidden">
+                      <div className="absolute bottom-0 left-0 h-1 bg-brand-darker/20 transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                      <span className="text-lg">{isUploadingImg ? `جاري الرفع... ${uploadProgress}%` : "ارفع صورتك"}</span>
                       {!isUploadingImg && <span className="text-xs opacity-70">إلى Cloudinary الخاص بك</span>}
                     </div>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'image')} disabled={isUploadingImg} />
+                    {isAdmin && <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'image')} disabled={isUploadingImg} />}
                 </label>
               </div>
             </motion.div>
@@ -377,8 +409,17 @@ export default function App() {
                 المقاعد محدودة جداً لضمان جودة المتابعة والتطبيق العملي.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-                <a href="https://wa.me/213673831994?text=مرحباً%20أستاذ%20دالي،%20أنا%20مهتم%20بالتسجيل%20في%20دورة%20الذكاء%20الاصطناعي.%20ما%20هي%20الخطوات%20التالية؟" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
+              <div className="flex justify-center pt-2 pb-4">
+                <div className="bg-brand-dark/50 border border-brand-cyan/20 rounded-2xl p-6 text-right w-full max-w-sm shadow-lg space-y-3 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-2 h-full bg-brand-cyan"></div>
+                  <p className="text-lg md:text-xl text-white pr-2"><span className="text-brand-cyan font-bold inline-block w-28">مكان الدورة:</span> سوق أهراس</p>
+                  <p className="text-lg md:text-xl text-white pr-2"><span className="text-brand-cyan font-bold inline-block w-28">سعر الدورة:</span> 10,000 د.ج (مليون)</p>
+                  <p className="text-lg md:text-xl text-white pr-2"><span className="text-brand-cyan font-bold inline-block w-28">نمط التعلم:</span> تطبيقي 100%</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="https://wa.me/213673831994?text=مرحباً%20أستاذ%20دالي،%20أنا%20مهتم%20بالتسجيل%20في%20دورة%20الذكاء%20الاصطناعي." target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
                   <MessageCircle className="w-6 h-6 shrink-0" />
                   راسلني مباشرة على واتساب
                 </a>
