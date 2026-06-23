@@ -18,7 +18,8 @@ import {
   Users,
   ChevronLeft,
   MessageCircle,
-  Play
+  Play,
+  Facebook
 } from 'lucide-react';
 
 const CTAButton = ({ text, className = "" }: { text: string, className?: string }) => (
@@ -34,6 +35,70 @@ const CTAButton = ({ text, className = "" }: { text: string, className?: string 
 );
 
 export default function App() {
+  const [profileImage, setProfileImage] = React.useState<string>(() => localStorage.getItem('profileImage') || '');
+  const [heroVideo, setHeroVideo] = React.useState<string>(() => localStorage.getItem('heroVideo') || '');
+  const [isUploadingVid, setIsUploadingVid] = React.useState(false);
+  const [isUploadingImg, setIsUploadingImg] = React.useState(false);
+
+  const handleUpload = async (file: File, type: 'image' | 'video') => {
+    let preset = localStorage.getItem('cloudinary_preset');
+    if (!preset) {
+      preset = window.prompt(
+        "رفع الملف مباشرة إلى Cloudinary الخاص بك (doaxziqm7).\n\nأدخل اسم الـ Upload Preset (مثال: ml_default).\nإذا لم تكن تعرفه أو لم تقم بإعداده، اترك الحقل فارغاً لعرض الملف محلياً فقط مؤقتاً:", 
+        "\"ml_default\""
+      );
+    }
+    
+    // Clean preset if they kept quotes or something
+    preset = preset?.replace(/"/g, '').trim() || null;
+
+    if (!preset) {
+       // local preview fallback
+       const url = URL.createObjectURL(file);
+       if(type === 'image') setProfileImage(url);
+       if(type === 'video') setHeroVideo(url);
+       return;
+    }
+
+    localStorage.setItem('cloudinary_preset', preset);
+    if(type === 'image') setIsUploadingImg(true);
+    if(type === 'video') setIsUploadingVid(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', preset);
+
+    try {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/doaxziqm7/${type}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        if(type === 'image') {
+          setProfileImage(data.secure_url);
+          localStorage.setItem('profileImage', data.secure_url);
+        } else {
+          setHeroVideo(data.secure_url);
+          localStorage.setItem('heroVideo', data.secure_url);
+        }
+      } else {
+        alert("حدث خطأ في Cloudinary: " + (data.error?.message || "تأكد من أن الـ Preset صحيح ومفعل كـ Unsigned"));
+        const url = URL.createObjectURL(file);
+        if(type === 'image') setProfileImage(url);
+        if(type === 'video') setHeroVideo(url);
+      }
+    } catch (err) {
+      alert("فشل الاتصال بـ Cloudinary");
+      const url = URL.createObjectURL(file);
+      if(type === 'image') setProfileImage(url);
+      if(type === 'video') setHeroVideo(url);
+    } finally {
+      if(type === 'image') setIsUploadingImg(false);
+      if(type === 'video') setIsUploadingVid(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-brand-darker font-sans text-gray-100 overflow-x-hidden selection:bg-brand-cyan selection:text-brand-darker">
       
@@ -89,28 +154,36 @@ export default function App() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative aspect-video rounded-3xl overflow-hidden bg-brand-dark border border-white/10 shadow-[0_0_50px_rgba(0,229,255,0.15)] group"
           >
-            {/* Placeholder for Video. 
-                When you have the YouTube link, you can uncomment the iframe below and place your link */}
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-card to-brand-darker flex flex-col items-center justify-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-brand-cyan/20 flex items-center justify-center mb-6 cursor-pointer group-hover:scale-110 group-hover:bg-brand-cyan/30 transition-all duration-300">
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-brand-cyan flex items-center justify-center pl-1.5 md:pl-2 shadow-[0_0_30px_rgba(0,229,255,0.5)]">
-                  <Play className="w-6 h-6 md:w-8 md:h-8 text-brand-darker fill-current" />
+            {heroVideo ? (
+              <div className="relative w-full h-full">
+                <video src={heroVideo} controls className="w-full h-full object-cover" />
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <label className="bg-brand-darker/80 backdrop-blur-md text-white px-4 py-2 rounded-full cursor-pointer hover:bg-brand-cyan hover:text-brand-darker transition-colors text-sm shadow-lg font-bold">
+                    {isUploadingVid ? "جاري الرفع..." : "تغيير الفيديو"}
+                    <input type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'video')} disabled={isUploadingVid} />
+                  </label>
                 </div>
               </div>
-              <h3 className="text-white font-bold text-lg md:text-xl">مساحة مخصصة للفيديو الترويجي</h3>
-              <p className="text-brand-cyan text-sm md:text-base mt-2">سيتم دمج فيديو يوتيوب هنا لزيادة التفاعل والإقناع</p>
-            </div>
-            
-            {/* 
-            <iframe 
-              className="absolute inset-0 w-full h-full"
-              src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-              title="Welcome video"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen>
-            </iframe> 
-            */}
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-card to-brand-darker flex flex-col items-center justify-center">
+                {isUploadingVid ? (
+                  <div className="bg-brand-cyan/20 p-8 rounded-full border border-brand-cyan shadow-[0_0_30px_rgba(0,229,255,0.3)] animate-pulse flex items-center justify-center flex-col">
+                     <span className="text-brand-cyan font-bold text-xl inline-block mt-4">جاري رفع الفيديو...</span>
+                  </div>
+                ) : (
+                  <>
+                    <label className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-brand-cyan/20 flex items-center justify-center mb-6 cursor-pointer hover:scale-110 hover:bg-brand-cyan/30 transition-all duration-300">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-brand-cyan flex items-center justify-center pl-1.5 md:pl-2 shadow-[0_0_30px_rgba(0,229,255,0.5)]">
+                        <Play className="w-6 h-6 md:w-8 md:h-8 text-brand-darker fill-current" />
+                      </div>
+                      <input type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'video')} disabled={isUploadingVid} />
+                    </label>
+                    <h3 className="text-white font-bold text-lg md:text-xl">اضغط هنا لرفع فيديو تعريفي</h3>
+                    <p className="text-brand-cyan text-sm md:text-base mt-2">عن طريق Cloudinary الخاص بك (doaxziqm7)</p>
+                  </>
+                )}
+              </div>
+            )}
           </motion.div>
         </section>
 
@@ -216,18 +289,35 @@ export default function App() {
               viewport={{ once: true }}
               className="lg:col-span-5 relative"
             >
-              <div className="aspect-square rounded-[3rem] overflow-hidden border border-white/10 relative glow-box bg-gradient-to-br from-brand-card to-brand-darker flex items-center justify-center">
-                {/* Fallback avatar if no image provided */}
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-luminosity"></div>
-                <div className="relative z-10 text-center space-y-4 p-8">
-                  <div className="w-24 h-24 mx-auto rounded-full bg-brand-cyan/20 border-2 border-brand-cyan flex items-center justify-center">
-                    <Users className="w-10 h-10 text-brand-cyan" />
-                  </div>
-                  <div>
-                    <h3 className="text-3xl font-extrabold text-white">دالي نجيب</h3>
-                    <p className="text-brand-cyan font-medium mt-2">مدرب وخبير تقني</p>
+              <div className="aspect-square rounded-[3rem] overflow-hidden border border-white/10 relative glow-box bg-gradient-to-br from-brand-card to-brand-darker flex items-center justify-center group">
+                {profileImage ? (
+                  <img src={profileImage} alt="دالي نجيب" className="absolute inset-0 w-full h-full object-cover z-0" />
+                ) : (
+                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-luminosity z-0"></div>
+                )}
+                
+                {/* Dark gradient at the bottom so text is readable */}
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-brand-darker to-transparent z-0"></div>
+
+                <div className="relative z-10 text-center space-y-4 p-8 mt-auto flex flex-col items-center justify-end h-full w-full pointer-events-none">
+                  {!profileImage && (
+                    <div className="w-24 h-24 mx-auto rounded-full bg-brand-cyan/20 border-2 border-brand-cyan flex flex-col items-center justify-center mb-auto mt-10">
+                      <Users className="w-10 h-10 text-brand-cyan" />
+                    </div>
+                  )}
+                  <div className="mt-auto pt-10">
+                    <h3 className="text-3xl font-extrabold text-white drop-shadow-lg">دالي نجيب</h3>
+                    <p className="text-brand-darker bg-brand-cyan font-bold mt-3 px-6 py-1.5 rounded-full inline-block shadow-lg mx-auto">مهندس خبير تطبيقات بالذكاء اصطناعي</p>
                   </div>
                 </div>
+
+                <label className="absolute inset-0 z-20 flex items-center justify-center bg-brand-darker/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
+                    <div className="bg-brand-cyan text-brand-darker px-8 py-4 rounded-full font-bold shadow-[0_0_20px_rgba(0,229,255,0.4)] hover:scale-105 transition-transform flex flex-col items-center gap-2">
+                      <span className="text-lg">{isUploadingImg ? "جاري الرفع..." : "ارفع صورتك"}</span>
+                      {!isUploadingImg && <span className="text-xs opacity-70">إلى Cloudinary الخاص بك</span>}
+                    </div>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'image')} disabled={isUploadingImg} />
+                </label>
               </div>
             </motion.div>
 
@@ -288,16 +378,13 @@ export default function App() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-                {/* 
-                  ملاحظة مهمة: يجب وضع رقم الهاتف الخاص بك بعد wa.me/ 
-                  مثال: https://wa.me/213555555555
-                */}
-                <a href="https://wa.me/213673831994?text=مرحباً،%20أريد%20التسجيل%20في%20دورة%20الذكاء%20الاصطناعي" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
+                <a href="https://wa.me/213673831994?text=مرحباً%20أستاذ%20دالي،%20أنا%20مهتم%20بالتسجيل%20في%20دورة%20الذكاء%20الاصطناعي.%20ما%20هي%20الخطوات%20التالية؟" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all transform hover:scale-105">
                   <MessageCircle className="w-6 h-6 shrink-0" />
-                  سجل عبر واتساب
+                  راسلني مباشرة على واتساب
                 </a>
-                <a href="#" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white hover:bg-gray-200 text-brand-darker font-extrabold py-5 px-10 rounded-full text-xl transition-all transform hover:scale-105">
-                  نموذج التسجيل
+                <a href="https://m.me/dali.nadjib.14" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-blue-600 text-white font-extrabold py-5 px-10 rounded-full text-xl transition-all transform hover:scale-105 opacity-90">
+                  <Facebook className="w-6 h-6 shrink-0" />
+                  أو عبر ماسنجر
                 </a>
               </div>
             </div>
@@ -317,9 +404,10 @@ export default function App() {
             <span className="text-xl font-bold font-sans">دورة الذكاء الاصطناعي للمبتدئين</span>
           </div>
           
-          <div className="flex items-center gap-6 text-gray-400">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-gray-400">
             <a href="#register" className="hover:text-brand-cyan transition-colors">التسجيل</a>
-            <a href="https://wa.me/213673831994" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">تواصل معنا واتساب</a>
+            <a href="https://m.me/dali.nadjib.14" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">ماسنجر</a>
+            <a href="https://wa.me/213673831994" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">واتساب</a>
           </div>
           
           <div className="text-sm text-gray-600">
